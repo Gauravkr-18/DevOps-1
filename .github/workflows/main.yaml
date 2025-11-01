@@ -60,16 +60,26 @@ jobs:
             # Add user to docker group to avoid permission issues
             echo "Adding user to docker group..."
             sudo usermod -aG docker $USER || true
-            newgrp docker || true
+
+            # Install/Update Docker Buildx
+            echo "Installing Docker Buildx..."
+            BUILDX_VERSION=$(curl -s https://api.github.com/repos/docker/buildx/releases/latest | grep 'tag_name' | cut -d\" -f4)
+            sudo mkdir -p /usr/local/lib/docker/cli-plugins
+            sudo curl -SL "https://github.com/docker/buildx/releases/download/${BUILDX_VERSION}/buildx-${BUILDX_VERSION}.linux-amd64" -o /usr/local/lib/docker/cli-plugins/docker-buildx
+            sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-buildx
 
             # Install Docker Compose v2 using Docker plugin (AWS Linux compatible)
-            echo "Checking Docker Compose installation..."
-            if ! docker compose version &> /dev/null; then
-              echo "Installing Docker Compose plugin..."
-              sudo mkdir -p /usr/local/lib/docker/cli-plugins
-              sudo curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose
-              sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
-            fi
+            echo "Installing Docker Compose plugin..."
+            sudo curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose
+            sudo chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+
+            # Verify installations
+            echo "Docker version:"
+            sudo docker --version
+            echo "Docker Buildx version:"
+            sudo docker buildx version
+            echo "Docker Compose version:"
+            sudo docker compose version
 
             # Check if docker-compose.yml exists
             if [ ! -f "docker-compose.yml" ]; then
@@ -85,7 +95,7 @@ jobs:
 
             # Stop and remove any existing containers using docker compose
             echo "Stopping existing containers..."
-            sudo docker compose down --remove-orphans || true
+            sudo docker compose down --remove-orphans 2>/dev/null || true
             
             # Remove any dangling containers with the same name
             sudo docker rm -f django_app 2>/dev/null || true
@@ -100,3 +110,7 @@ jobs:
             # Check container status
             echo "Container status:"
             sudo docker ps
+
+            # Check container logs for any errors
+            echo "Container logs:"
+            sudo docker logs django_app --tail 50
