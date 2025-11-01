@@ -57,10 +57,10 @@ jobs:
             echo "Files in current directory:"
             ls -la
 
-            # Install docker-compose if not available
+            # Install Docker Compose v2 if not available (AWS Linux compatible)
             if ! command -v docker-compose &> /dev/null; then
-              echo "Installing docker-compose..."
-              sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+              echo "Installing Docker Compose..."
+              sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
               sudo chmod +x /usr/local/bin/docker-compose
             fi
 
@@ -72,9 +72,9 @@ jobs:
               exit 1
             fi
 
-            # Stop any processes using port 8000
-            echo "Checking for processes using port 8000..."
-            sudo lsof -ti:8000 | xargs -r sudo kill -9 || true
+            # Stop any processes using port 30 (updated from 8000)
+            echo "Checking for processes using port 30..."
+            sudo fuser -k 30/tcp 2>/dev/null || true
 
             # Stop and remove any existing containers
             echo "Stopping existing containers..."
